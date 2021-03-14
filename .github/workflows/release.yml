@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  Builds:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - run: cd source && yarn && yarn build
+      - name: Compress Build Outputs
+        run: cd source && mv dist assets && tar -czf assets.tar.gz assets
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Build Location
+          path: source/assets.tar.gz
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: G-Index Assets Build ${{ steps.get_version.outputs.VERSION }}
+          files: |
+            source/assets.tar.gz
